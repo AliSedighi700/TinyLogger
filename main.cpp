@@ -21,10 +21,6 @@ bool download_price(const std::string& coin_id,
                       "&vs_currencies=usd";
 
     std::string cmd = "curl -s -o \"" + outfile + "\" \"" + url + "\"";
-    std::cout << "Fetching " << coin_id << "...\n";
-    std::cout << "===============================" << '\n';
-    std::cout << "Command " <<  cmd << '\n';
-
     int ret = std::system(cmd.c_str());
 
     if(ret != 0)
@@ -91,14 +87,31 @@ int main()
 {
     std::cout << "concurrent fetcher and arbitrage checker" << '\n';
 
-    double price = parse_bitcoin_usd_price();
+    constexpr int NUM_CYCLE = 10;
+    constexpr auto SLEEP_DURATION = std::chrono::seconds(5);
 
-    if(price > 0.0)
+
+    for(int i = 1 ; i < NUM_CYCLE ; ++i)
     {
-        std::cout << "market data is downloaded" << '\n';
-        std::cout << "Current bitcon price: $" << price << '\n';
-    }else{
-        std::cout << "Parsing failed" << '\n';
+        std::cout << "Cycle " << i << " / " << NUM_CYCLE << '\n' ;
+
+        if(!download_price("bitcoin"))
+        {
+            std::cout << "Download faild, skiping this cycle " << '\n';
+            std::this_thread::sleep_for(SLEEP_DURATION);
+            continue;
+        }
+
+        double price = parse_bitcoin_usd_price();
+
+        if (price > 0.0) {
+            std::cout << "BTC/USD: $" << price << "\n";
+        } else {
+            std::cout << "Parsing failed this time\n";
+        }
+
+        std::cout << "----------------------------------------\n";
+        std::this_thread::sleep_for(SLEEP_DURATION);
     }
 
 
