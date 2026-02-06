@@ -87,35 +87,81 @@ int main()
 {
     std::cout << "concurrent fetcher and arbitrage checker" << '\n';
 
-    constexpr int NUM_CYCLE = 10;
-    constexpr auto SLEEP_DURATION = std::chrono::seconds(5);
+
+    std::stop_source stop_source;
+    std::stop_token stop_token = stop_source.get_token();
 
 
-    for(int i = 1 ; i < NUM_CYCLE ; ++i)
-    {
-        std::cout << "Cycle " << i << " / " << NUM_CYCLE << '\n' ;
+    std::jthread fetch_thread([&](std::stop_token st)
+            {
+                std::cout << "[Fetcher] Thread started successfully!\n";
+                constexpr auto INTERVAL = std::chrono::seconds(5);
 
-        if(!download_price("bitcoin"))
-        {
-            std::cout << "Download faild, skiping this cycle " << '\n';
-            std::this_thread::sleep_for(SLEEP_DURATION);
-            continue;
-        }
+                int cycle{};
 
-        double price = parse_bitcoin_usd_price();
+                while(!st.stop_requested())
+                {
+                    cycle++;
 
-        if (price > 0.0) {
-            std::cout << "BTC/USD: $" << price << "\n";
-        } else {
-            std::cout << "Parsing failed this time\n";
-        }
+                    if(download_price("bitcoin"))
+                    {
+                        double price = parse_bitcoin_usd_price();
 
-        std::cout << "----------------------------------------\n";
-        std::this_thread::sleep_for(SLEEP_DURATION);
+                        if(price > 0.0)
+                        {
+                            std::cout << "BTC/UCS : " << price << '\n';
+                        }else
+                        {
+                            std::cout << "Parse failed." << '\n';
+                        }
+                    }else
+                    {
+                        std::cout << "Download failed." << '\n';
+                    }
+
+                    std::cout << "------------------------------" << '\n';
+
+                    for(int i = 0 ; i < 5 && !st.stop_requested(); ++i)
+                    {
+                        std::this_thread::sleep_for(std::chrono::seconds(2));
+                    }
+
+
+                    std::cout << "[fetcher thread]  stop requested." << '\n';
+                }
+            }, stop_token);
+
+
+    for (int i = 0; i < 8; ++i) {
+        std::cout << "[Main] Still alive... (" << (i+1) << "/8)\n";
+        std::this_thread::sleep_for(std::chrono::seconds(3));
     }
 
+
+    stop_source.request_stop();
+
+    std::cout << "Fetcher thread has finished.\n";
 
 
     return 0;
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
