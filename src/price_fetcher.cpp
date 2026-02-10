@@ -4,13 +4,10 @@
 #include <filesystem>
 #include <cstdlib>
 
-namespace fs = std::filesystem;
-
 PriceFetcher::PriceFetcher(SharedPrices& store, std::string coin_id)
     : priceStore_(store)
     , coin_id_(std::move(coin_id))
-{
-}
+{}
 
 void PriceFetcher::start(std::stop_token st)
 {
@@ -59,7 +56,7 @@ bool PriceFetcher::downloadPrice(const std::string& outfile) const
         return false;
     }
 
-    if (fs::exists(outfile) && fs::file_size(outfile) > 10) {
+    if (std::filesystem::exists(outfile) && std::filesystem::file_size(outfile) > 10) {
         return true;
     }
 
